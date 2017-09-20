@@ -1,119 +1,244 @@
 const connection = require("./Connection");
 const inquirer = require("inquirer");
 
-var queryURL = "";
-var displayNames = [];
-var tempProduct;
+var queryString = "";
 
 var lineBreak = "";
 
-for(i = 0; i < 58; i++) {
-    lineBreak += "=";
+for(i = 0; i < 90; i++) {
+    lineBreak += "-";
 }
 
+console.log("Welcome to the Bamazon Management Tool\n");
 manageBamazon();
 
 function manageBamazon() {
 
 
-    connection.query(queryURL, function(error, response) {
+    var choiceArray = ["View Products for Sale", "View Low Inventory", "Add to Inventory",
+                        "Add New Product", "Quit"];
+                
+    inquirer.prompt([
+        {
+            message: "Select an option",
+            type: "list",
+            choices: choiceArray,
+            name: "action"
+        }  
+    ]).then(function(answers){
 
-        if(error) throw error;
+        if(answers.action === "View Products for Sale") {
 
-        console.log(lineBreak);
-
-        for(var i = 0; i < response.length; i++) {
-
-            displayNames.push(response[i].product_name);
-
-            // add space to product_name for display
-            while(displayNames[i].length < 40) {
-                displayNames[i] += " ";
-            }
-
-            // add a space before display for single digit IDs
-            if(i < 9) {
-                console.log(" " + response[i].id + " | " + displayNames[i] + " | $" +
-                                                                    response[i].price.toFixed(2));
-            } else {
-                console.log(response[i].id + " | " + displayNames[i] + " | $" +
-                                                                        response[i].price.toFixed(2));
-            }
+            queryString = "SELECT * FROM products";
+            
+                connection.query(queryString, function(error, response) {
+            
+                    if(error) throw error;
+                    
+                    displayProducts(response);
+                    manageBamazon();
+            });
         }
 
+        else if(answers.action === "View Low Inventory") {
+
+            queryString = "SELECT * FROM products WHERE stock_quantity < 5";
+            
+            connection.query(queryString, function(error, response) {
+
+                if(error) throw error;
+            
+                displayProducts(response);
+                manageBamazon();
+            });
+        }
+
+        else if(answers.action === "Add to Inventory") {
+
+            addToInventory();
+        }
+
+        else if(answers.action === "Add New Product") {
+
+            addNewProduct();
+        }
+
+        // quit
+        else {
+            connection.end();
+        }
+    });
+}
+
+function displayProducts(response) {
+
+    var displayNames = [];
+    var displayDepartments = [];
+    var displayPrices = [];
+
+    console.log("\n ID | Item Name                                | Department      | Price" +
+                                                    "       | Stock");
+    console.log(lineBreak);
+
+    for(var i = 0; i < response.length; i++) {
+
+        displayNames.push(response[i].product_name);
+        displayDepartments.push(response[i].department_name);
+        displayPrices.push(response[i].price.toFixed(2).toString());
+
+        // add space to product_name for display
+        while(displayNames[i].length < 40) {
+            displayNames[i] += " ";
+        }
+        // add space to product_name for display
+        while(displayDepartments[i].length < 15) {
+            displayDepartments[i] += " ";
+        }
+        // add space to product_name for display
+        while(displayPrices[i].length < 10) {
+            displayPrices[i] += " ";
+        }
+
+        // add a space before display for single digit IDs
+        if(i < 9) {
+            console.log("  " + response[i].id + " | " + displayNames[i] + " | " +
+                            displayDepartments[i] + " | $" + displayPrices[i] +
+                             " | " + response[i].stock_quantity);
+        } else {
+            console.log(" " + response[i].id + " | " + displayNames[i] + " | " +
+                            displayDepartments[i] + " | $" + displayPrices[i] +
+                            " | " + response[i].stock_quantity);
+        }
+    }
+
+    console.log(lineBreak);
+}
+
+function addToInventory() {
+    
+    queryString = "SELECT * FROM products";
+
+    connection.query(queryString, function(error, response) {
+
+        displayProducts(response);
+
+        console.log(lineBreak);
+        console.log("Add inventory:")
         console.log(lineBreak);
 
         var choiceArray = [];
-        
-        for(i = 0; i < response.length; i++) {
+        var tempProduct;
+
+        for(var i = 0; i < response.length; i++) {
 
             choiceArray.push(response[i].id.toString());
         }
-            
+
         inquirer.prompt([
             {
-                message: "Which item would you like to buy?",
-                type: "list",
-                choices: choiceArray,
-                name: "productID"
-            },    
-            {
-                message: "How many would you like to buy?",
-                type: "input",
-                name: "quantity"
-            }     
-        ]).then(function(answers){
+                message: "Select an item by ID (q to quit)",
+                // type: "list",
+                // choices: choiceArray,
+                name: "updateID"
+            }
+        ]).then(function(answer1) {
+
+            if(answer1.updateID.toLowerCase() === "q") {
+
+                connection.end();
+                return;
+            }
 
             for(i = 0; i < response.length; i++) {
 
-                if(parseInt(answers.productID) === response[i].id) {
+                if(response[i].id === parseInt(answer1.updateID)) {
+
                     tempProduct = response[i];
                     break;
                 }
             }
 
-            // check to see if there's sufficient quantity for order
-            if(tempProduct.stock_quantity < answers.quantity) {
+            if(!tempProduct) {
 
-                console.log("Insufficient quantity!");
-                shopBamazon();
+                console.log(lineBreak);
+                console.log("Invalid input.  Try Again.");
+                console.log(lineBreak);
+                addToInventory();
             }
-            
+
             else {
+                inquirer.prompt([
+                {
+                    message: "Enter quantity to add",
+                    type: "input",
+                    name: "updateQuantity"
+                }
+                ]).then(function(answer2) {
 
-                // update item in database
-                queryURL = "UPDATE products SET stock_quantity = stock_quantity - " +
-                                    answers.quantity + " WHERE id=" + tempProduct.id.toString();
+                    if(!parseInt(answer2.updateQuantity)) {
 
-                connection.query(queryURL, function(error, response) {
+                        console.log(lineBreak);
+                        console.log("Invalid input.  Try Again.");
+                        console.log(lineBreak);
+                        addToInventory();
+                    }
 
-                    continuePrompt();
+                    else {
+
+                        queryString = "UPDATE products SET stock_quantity = stock_quantity + " +
+                        parseInt(answer2.updateQuantity) + " WHERE id = " + answer1.updateID;
+
+                        connection.query(queryString, function() {
+
+                            console.log(lineBreak);
+                            console.log("Added Inventory: " + answer2.updateQuantity + " " +
+                                                                    tempProduct.product_name);
+                            console.log(lineBreak);
+                            manageBamazon();
+                        });
+                    }
                 });
             }
         });
     });
 }
 
-function continuePrompt() {
-    
-        inquirer.prompt([
-            {
-                message: "Again?",
-                type: "list",
-                choices: ["yes", "no"],
-                name: "again"
-            }
-        ]).then(function(answers) {
-        
-            if(answers.again.toLowerCase() === "yes") {
-    
-                shopBamazon();
-            }
-    
-            else {
-    
-                console.log("Thank you for playing. Goodbye.");
-                connection.end();
-            }
+function addNewProduct() {
+    inquirer.prompt([
+        {
+            message: "Enter product name",
+            name: "newProductName"
+        },
+        {
+            message: "Enter department",
+            name: "newProductDepartment"
+        },
+        {
+            message: "Enter price",
+            name: "newProductPrice"
+        },
+        {
+            message: "Enter stock quantity",
+            name: "newProductStockQuantity"
+        }
+    ]).then(function(answers) {
+
+        connection.query("INSERT INTO products SET ?",
+        {
+            product_name: answers.newProductName,
+            department_name: answers.newProductDepartment,
+            price: parseFloat(answers.newProductPrice),
+            stock_quantity: parseInt(answers.newProductStockQuantity)
+        },
+        function(error, response) {
+
+            if(error) console.log(error);
+
+            console.log(lineBreak);
+            console.log("Product inserted: " + answers.newProductStockQuantity + " " + answers.newProductName + " (" +
+                                                answers.newProductDepartment + ") @ $" + answers.newProductPrice);
+            console.log(lineBreak);
+            manageBamazon();
         });
-    }
+    });
+}

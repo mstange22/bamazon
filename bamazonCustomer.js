@@ -2,13 +2,12 @@ const connection = require("./Connection");
 const inquirer = require("inquirer");
 
 var queryURL = "";
-var displayNames = [];
 var tempProduct;
 
 var lineBreak = "";
 
-for(i = 0; i < 58; i++) {
-    lineBreak += "=";
+for(i = 0; i < 90; i++) {
+    lineBreak += "-";
 }
 
 shopBamazon();
@@ -21,28 +20,7 @@ function shopBamazon() {
 
         if(error) throw error;
 
-        console.log(lineBreak);
-
-        for(var i = 0; i < response.length; i++) {
-
-            displayNames.push(response[i].product_name);
-
-            // add space to product_name for display
-            while(displayNames[i].length < 40) {
-                displayNames[i] += " ";
-            }
-
-            // add a space before display for single digit IDs
-            if(i < 9) {
-                console.log(" " + response[i].id + " | " + displayNames[i] + " | $" +
-                                                                    response[i].price.toFixed(2));
-            } else {
-                console.log(response[i].id + " | " + displayNames[i] + " | $" +
-                                                                        response[i].price.toFixed(2));
-            }
-        }
-
-        console.log(lineBreak);
+        displayProducts(response);
 
         var choiceArray = [];
         
@@ -87,21 +65,9 @@ function shopBamazon() {
                                     answers.quantity + " WHERE id=" + tempProduct.id.toString();
 
                 connection.query(queryURL, function(error, response) {
-                
-                    if(parseInt(answers.quantity) > 1  && !tempProduct.product_name.endsWith("Jeans")) {
-                        if(tempProduct.product_name.endsWith("s")) {
-                            
-                            console.log("You purchased " + answers.quantity + " " + tempProduct.product_name + "es");
-                        }
-                        else {
-    
-                            console.log("You purchased " + answers.quantity + " " + tempProduct.product_name + "s");
-                        }
-                    }
 
-                    else {
-                        console.log("You purchased " + answers.quantity + " " + tempProduct.product_name);
-                    }
+                    console.log(lineBreak);
+                    console.log("Item purchased: " + answers.quantity + " " + tempProduct.product_name);
                     console.log("Total price: $" + (parseInt(answers.quantity) * tempProduct.price).toFixed(2));
                     console.log(lineBreak);
 
@@ -112,26 +78,70 @@ function shopBamazon() {
     });
 }
 
+function displayProducts(response) {
+    
+   
+    var displayNames = [];
+    var displayDepartments = [];
+    var displayPrices = [];
+
+    console.log("\n ID | Item Name                                | Department      | Price" +
+                                                    "       | Stock");
+    console.log(lineBreak);
+
+    for(var i = 0; i < response.length; i++) {
+
+        displayNames.push(response[i].product_name);
+        displayDepartments.push(response[i].department_name);
+        displayPrices.push(response[i].price.toFixed(2).toString());
+
+        // add space to product_name for display
+        while(displayNames[i].length < 40) {
+            displayNames[i] += " ";
+        }
+        // add space to product_name for display
+        while(displayDepartments[i].length < 15) {
+            displayDepartments[i] += " ";
+        }
+        // add space to product_name for display
+        while(displayPrices[i].length < 10) {
+            displayPrices[i] += " ";
+        }
+
+        // add a space before display for single digit IDs
+        if(i < 9) {
+            console.log("  " + response[i].id + " | " + displayNames[i] + " | " +
+                            displayDepartments[i] + " | $" + displayPrices[i] +
+                             " | " + response[i].stock_quantity);
+        } else {
+            console.log(" " + response[i].id + " | " + displayNames[i] + " | " +
+                            displayDepartments[i] + " | $" + displayPrices[i] +
+                            " | " + response[i].stock_quantity);
+        }
+    }
+    console.log(lineBreak);    
+}
+
 function continuePrompt() {
     
-        inquirer.prompt([
-            {
-                message: "Again?",
-                type: "list",
-                choices: ["yes", "no"],
-                name: "again"
-            }
-        ]).then(function(answers) {
-        
-            if(answers.again.toLowerCase() === "yes") {
+    inquirer.prompt([
+        {
+            message: "Again?",
+            type: "list",
+            choices: ["yes", "no"],
+            name: "again"
+        }
+    ]).then(function(answers) {
     
-                shopBamazon();
-            }
-    
-            else {
-    
-                console.log("Thank you for playing. Goodbye.");
-                connection.end();
-            }
-        });
-    }
+        if(answers.again.toLowerCase() === "yes") {
+
+            shopBamazon();
+        }
+
+        else {
+
+            console.log("Thank you for playing. Goodbye.");
+            connection.end();
+        }
+    });
+}
