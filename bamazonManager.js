@@ -4,7 +4,6 @@ const inquirer = require("inquirer");
 var queryURL = "";
 var displayNames = [];
 var tempProduct;
-var newQty;
 
 var lineBreak = "";
 
@@ -12,11 +11,10 @@ for(i = 0; i < 58; i++) {
     lineBreak += "=";
 }
 
-shopBamazon();
+manageBamazon();
 
-function shopBamazon() {
+function manageBamazon() {
 
-    queryURL = "SELECT * FROM products";
 
     connection.query(queryURL, function(error, response) {
 
@@ -83,29 +81,11 @@ function shopBamazon() {
             
             else {
 
-                newQty = tempProduct.stock_quantity - answers.quantity;
                 // update item in database
-                queryURL = "UPDATE products SET stock_quantity=" + newQty +
-                                                                " WHERE id=" + tempProduct.id.toString();
+                queryURL = "UPDATE products SET stock_quantity = stock_quantity - " +
+                                    answers.quantity + " WHERE id=" + tempProduct.id.toString();
 
                 connection.query(queryURL, function(error, response) {
-                
-                    if(parseInt(answers.quantity) > 1  && !tempProduct.product_name.endsWith("Jeans")) {
-                        if(tempProduct.product_name.endsWith("s")) {
-                            
-                            console.log("You purchased " + answers.quantity + " " + tempProduct.product_name + "es");
-                        }
-                        else {
-    
-                            console.log("You purchased " + answers.quantity + " " + tempProduct.product_name + "s");
-                        }
-                    }
-
-                    else {
-                        console.log("You purchased " + answers.quantity + " " + tempProduct.product_name);
-                    }
-                    console.log("Total price: $" + (parseInt(answers.quantity) * tempProduct.price).toFixed(2));
-                    console.log(lineBreak);
 
                     continuePrompt();
                 });
