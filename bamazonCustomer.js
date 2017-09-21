@@ -1,78 +1,109 @@
 const connection = require("./Connection");
 const inquirer = require("inquirer");
 
-var queryURL = "";
-var tempProduct;
+var queryString = "";
 
 var lineBreak = "";
 
-for(i = 0; i < 90; i++) {
+for(i = 0; i < 100; i++) {
     lineBreak += "-";
 }
+
+console.log("\n===========================");
+console.log("Welcome to Bamazon Shopping")
+console.log("===========================");
 
 shopBamazon();
 
 function shopBamazon() {
 
-    queryURL = "SELECT * FROM products";
+    var tempProduct;
+    queryString = "SELECT * FROM products";
 
-    connection.query(queryURL, function(error, response) {
+    connection.query(queryString, function(error, response) {
 
         if(error) throw error;
 
         displayProducts(response);
 
-        var choiceArray = [];
-        
-        for(i = 0; i < response.length; i++) {
+        console.log("What would you like to buy?");
 
-            choiceArray.push(response[i].id.toString());
-        }
-            
         inquirer.prompt([
             {
-                message: "Which item would you like to buy?",
-                type: "list",
-                choices: choiceArray,
-                name: "productID"
-            },    
-            {
-                message: "How many would you like to buy?",
-                type: "input",
-                name: "quantity"
-            }     
-        ]).then(function(answers){
+                message: "Select an item by ID (q to quit)",
+                name: "updateID"
+            }
+        ]).then(function(answer1) {    
 
+            if(answer1.updateID.toLowerCase() === "q") {
+                
+                connection.end();
+                return;
+            }
+
+            // loop through response array, searching for a match on ID
             for(i = 0; i < response.length; i++) {
+                
+                if(response[i].id === parseInt(answer1.updateID)) {
 
-                if(parseInt(answers.productID) === response[i].id) {
                     tempProduct = response[i];
                     break;
                 }
             }
+                
+            // if tempProduct was not assigned, invalid input
+            if(!tempProduct) {
 
-            // check to see if there's sufficient quantity for order
-            if(tempProduct.stock_quantity < answers.quantity) {
-
-                console.log("Insufficient quantity!");
+                console.log(lineBreak);
+                console.log("Invalid input.  Try Again.");
+                console.log(lineBreak);
                 shopBamazon();
             }
-            
+
             else {
 
-                // update item in database
-                queryURL = "UPDATE products SET stock_quantity = stock_quantity - " +
-                                    answers.quantity + " WHERE id=" + tempProduct.id.toString();
+                inquirer.prompt([
+                    {
+                        message: "How many would you like to buy?",
+                        type: "input",
+                        name: "quantity"
+                    }     
+                ]).then(function(answers){
 
-                connection.query(queryURL, function(error, response) {
+                    // check to see if there's sufficient quantity for order
+                    if(tempProduct.stock_quantity < answers.quantity) {
 
-                    console.log(lineBreak);
-                    console.log("Item purchased: " + answers.quantity + " " + tempProduct.product_name);
-                    console.log("Total price: $" + (parseInt(answers.quantity) * tempProduct.price).toFixed(2));
-                    console.log(lineBreak);
+                        console.log("Insufficient quantity!");
+                        shopBamazon();
+                    }
+                
+                    else {
 
-                    continuePrompt();
-                });
+                        // update item in database
+                        queryString = "UPDATE products SET stock_quantity = stock_quantity - " +
+                                            answers.quantity + " WHERE id=" + tempProduct.id.toString();
+
+                        var totalSale = (parseInt(answers.quantity) * tempProduct.price);
+                        connection.query(queryString, function(error, response) {
+
+                            console.log(lineBreak);
+                            console.log("Item purchased: " + answers.quantity + " " + tempProduct.product_name);
+                            console.log("Total price: $" + totalSale.toFixed(2));
+                            console.log(lineBreak);
+
+                            
+                            queryString = "UPDATE products SET product_sales = product_sales + " +
+                            totalSale.toFixed() + " WHERE id=" + tempProduct.id.toString();
+
+                            connection.query(queryString, function(error, response) {
+
+                                if(error) console.log(error);
+                                
+                                continuePrompt();
+                            });
+                        });
+                    }
+                });             
             }
         });
     });
@@ -85,7 +116,7 @@ function displayProducts(response) {
     var displayDepartments = [];
     var displayPrices = [];
 
-    console.log("\n ID | Item Name                                | Department      | Price" +
+    console.log("\n ID | Item Name                                | Department           | Price" +
                                                     "       | Stock");
     console.log(lineBreak);
 
@@ -100,7 +131,7 @@ function displayProducts(response) {
             displayNames[i] += " ";
         }
         // add space to product_name for display
-        while(displayDepartments[i].length < 15) {
+        while(displayDepartments[i].length < 20) {
             displayDepartments[i] += " ";
         }
         // add space to product_name for display
@@ -126,7 +157,7 @@ function continuePrompt() {
     
     inquirer.prompt([
         {
-            message: "Again?",
+            message: "Continue shopping?",
             type: "list",
             choices: ["yes", "no"],
             name: "again"
@@ -140,7 +171,7 @@ function continuePrompt() {
 
         else {
 
-            console.log("Thank you for playing. Goodbye.");
+            console.log("Thank you for shopping at Bamazon! Goodbye.");
             connection.end();
         }
     });

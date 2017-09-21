@@ -5,11 +5,14 @@ var queryString = "";
 
 var lineBreak = "";
 
-for(i = 0; i < 90; i++) {
+for(i = 0; i < 100; i++) {
     lineBreak += "-";
 }
 
+console.log("======================================");
 console.log("Welcome to the Bamazon Management Tool\n");
+console.log("======================================");
+
 manageBamazon();
 
 function manageBamazon() {
@@ -76,7 +79,7 @@ function displayProducts(response) {
     var displayDepartments = [];
     var displayPrices = [];
 
-    console.log("\n ID | Item Name                                | Department      | Price" +
+    console.log("\n ID | Item Name                                | Department                | Price" +
                                                     "       | Stock");
     console.log(lineBreak);
 
@@ -91,7 +94,7 @@ function displayProducts(response) {
             displayNames[i] += " ";
         }
         // add space to product_name for display
-        while(displayDepartments[i].length < 15) {
+        while(displayDepartments[i].length < 25) {
             displayDepartments[i] += " ";
         }
         // add space to product_name for display
@@ -100,7 +103,7 @@ function displayProducts(response) {
         }
 
         // add a space before display for single digit IDs
-        if(i < 9) {
+        if(response[i].id < 10) {
             console.log("  " + response[i].id + " | " + displayNames[i] + " | " +
                             displayDepartments[i] + " | $" + displayPrices[i] +
                              " | " + response[i].stock_quantity);
@@ -116,29 +119,18 @@ function displayProducts(response) {
 
 function addToInventory() {
     
+    var tempProduct;
     queryString = "SELECT * FROM products";
 
     connection.query(queryString, function(error, response) {
 
         displayProducts(response);
 
-        console.log(lineBreak);
         console.log("Add inventory:")
-        console.log(lineBreak);
-
-        var choiceArray = [];
-        var tempProduct;
-
-        for(var i = 0; i < response.length; i++) {
-
-            choiceArray.push(response[i].id.toString());
-        }
 
         inquirer.prompt([
             {
                 message: "Select an item by ID (q to quit)",
-                // type: "list",
-                // choices: choiceArray,
                 name: "updateID"
             }
         ]).then(function(answer1) {
@@ -149,6 +141,7 @@ function addToInventory() {
                 return;
             }
 
+            // loop through response array, searching for a match on ID
             for(i = 0; i < response.length; i++) {
 
                 if(response[i].id === parseInt(answer1.updateID)) {
@@ -158,6 +151,7 @@ function addToInventory() {
                 }
             }
 
+            // if tempProduct was not assigned, invalid input
             if(!tempProduct) {
 
                 console.log(lineBreak);
@@ -191,7 +185,7 @@ function addToInventory() {
                         connection.query(queryString, function() {
 
                             console.log(lineBreak);
-                            console.log("Added Inventory: " + answer2.updateQuantity + " " +
+                            console.log("Added Inventory: " + answer2.updateQuantity + " - " +
                                                                     tempProduct.product_name);
                             console.log(lineBreak);
                             manageBamazon();
@@ -235,7 +229,7 @@ function addNewProduct() {
             if(error) console.log(error);
 
             console.log(lineBreak);
-            console.log("Product inserted: " + answers.newProductStockQuantity + " " + answers.newProductName + " (" +
+            console.log("Product inserted: " + answers.newProductStockQuantity + " - " + answers.newProductName + " (" +
                                                 answers.newProductDepartment + ") @ $" + answers.newProductPrice);
             console.log(lineBreak);
             manageBamazon();
