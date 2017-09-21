@@ -8,6 +8,8 @@ for(i = 0; i < 80; i++) {
     lineBreak += "-";
 }
 
+
+process.stdout.write('\x1B[2J\x1B[0f');
 console.log("=========================================");
 console.log("Welcome to the Bamazon Supervisor Utility");
 console.log("=========================================");
@@ -29,35 +31,12 @@ function manageBamazon() {
 
         if(answers.action === "View Product Sales by Department") {
 
-            queryString = "SELECT departments.department_id, products.department_name, " +
-                            "departments.overhead_costs, SUM(product_sales) AS 'sales_per_department' " +
-                            "FROM products INNER JOIN departments ON departments.department_name = " +
-                            "products.department_name GROUP BY departments.department_id";
-            
-            connection.query(queryString, function(error, response) {
-        
-                if(error) throw error;
-                
-                displaySalesByDepartment(response);
-                manageBamazon();
-            });
+            viewProductSalesByDepartment();
         }
 
         else if(answers.action === "Create New Department") {
 
-            inquirer.prompt([
-                {
-                    message: "Enter new department name",
-                    name: "newDepartmentName"
-                },
-                {
-                    message: "Enter overhead percentage (decimal between 0 & 1)",
-                    name: "newOverhead"
-                }  
-            ]).then(function(answers){
-
-                addDepartment(answers);
-            });
+            createNewDepartment();
         }
 
         // quit
@@ -67,16 +46,108 @@ function manageBamazon() {
     });
 }
 
-function addDepartment(answers) {
+function viewProductSalesByDepartment() {
+
+    queryString = "SELECT departments.department_id, departments.department_name, " +
+    "departments.overhead_costs, SUM(product_sales) AS 'sales_per_department' " +
+    "FROM departments LEFT JOIN products ON departments.department_name = " +
+    "products.department_name GROUP BY departments.department_id";
+    
+    connection.query(queryString, function(error, response) {
+    
+        if(error) throw error;
+        
+        displaySalesByDepartment(response);
+        manageBamazon();
+    });
+}
+
+function createNewDepartment() {
+
+    inquirer.prompt([
+        {
+            message: "Enter new department name",
+            name: "newDepartmentName"
+        }
+    ]).then(function(newDepartment){
+
+        // check to see if department exists before continuing
+        connection.query("SELECT * FROM departments", function(error, results) {
+
+            var departmentExistsflag = false;
+            
+            for(var i = 0; i < results.length && !departmentExistsflag; i++) {
+    
+                if(results[i].department_name === newDepartment.newDepartmentName) {
+    
+                    console.log("================================");
+                    console.log("Error: Department already exists");
+                    console.log("================================");
+                    departmentExistsflag = true;
+                }
+            }
+    
+            if(departmentExistsflag) {
+    
+                createNewDepartment();
+            }
+    
+            else {
+                getNewDepartmentOverhead(newDepartment);
+            }
+
+        });
+    });
+}
+
+function getNewDepartmentOverhead(newDepartment) {
+    
+    inquirer.prompt([
+        {
+            message: "Enter overhead percentage (decimal between 0 & 1)",
+            name: "overhead"
+        }
+        ]).then(function(newOverhead){
+    
+            // check to see if overhead is a valid decimal value
+            if(parseFloat(newOverhead.overhead) < 0 || parseFloat(newOverhead.overhead) > 1) {
+
+                console.log("==============================");
+                console.log("Error: Invalid overhead amount");
+                console.log("==============================");
+                getNewDepartmentOverhead(newDepartment);
+            }
+            
+            else {
+
+                addDepartment(newDepartment, newOverhead);
+            }
+        });
+}
+
+function addDepartment(answers1, answers2) {
 
     queryString = "INSERT into departments (department_name, overhead_costs) " +
-                  "VALUES ('" + answers.newDepartmentName + "', '" + answers.newOverhead + "')";
-
+                  "VALUES ('" + answers1.newDepartmentName + "', '" + answers2.overhead + "')";
+    
+    var messageString;
+    var addLineBreak = ""
+    
     connection.query(queryString, function(error, result) {
 
         if(!error) {
-            console.log("Department added: " + answers.newDepartmentName +
-                        " @ " + (parseFloat(answers.newOverhead) * 100).toString() + "% overhead");        
+            
+            messageString = "Department added: " + answers1.newDepartmentName +
+                        " @ " + (parseFloat(answers2.overhead) * 100).toString() + "% overhead";
+
+            for(var i = 0; i < messageString.length; i++) {
+
+                addLineBreak += "=";
+            }
+
+            console.log("\n" + addLineBreak);
+            console.log(messageString);
+            console.log(addLineBreak);        
         }
 
         manageBamazon();
@@ -90,6 +161,8 @@ function displaySalesByDepartment(response) {
     var displaySales = [];
     var displayProfit = [];
 
+    
+    process.stdout.write('\x1B[2J\x1B[0f');
     console.log("\n ID | Department Name           | Overhead    | Product Sales | Total Profit");
     console.log(lineBreak);
 
@@ -100,7 +173,17 @@ function displaySalesByDepartment(response) {
 
         displayDepartments.push(response[i].department_name);
         displayOverhead.push((response[i].overhead_costs * response[i].sales_per_department).toFixed(2).toString());
-        displaySales.push(response[i].sales_per_department.toFixed(2).toString());
+
+        // handle null entries in products.product_sales
+        if(response[i].sales_per_department) {
+
+            displaySales.push(response[i].sales_per_department.toFixed(2).toString());
+        }
+
+        else {
+            displaySales.push("0");
+        }
+
         displayProfit.push(profit.toFixed(2).toString());
         
         // add space to department name for display

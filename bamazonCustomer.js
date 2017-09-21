@@ -9,7 +9,8 @@ for(i = 0; i < 100; i++) {
     lineBreak += "-";
 }
 
-console.log("\n===========================");
+process.stdout.write('\x1B[2J\x1B[0f');
+console.log("===========================");
 console.log("Welcome to Bamazon Shopping")
 console.log("===========================");
 
@@ -54,6 +55,7 @@ function shopBamazon() {
             // if tempProduct was not assigned, invalid input
             if(!tempProduct) {
 
+                process.stdout.write('\x1B[2J\x1B[0f');
                 console.log(lineBreak);
                 console.log("Invalid input.  Try Again.");
                 console.log(lineBreak);
@@ -70,10 +72,22 @@ function shopBamazon() {
                     }     
                 ]).then(function(answers){
 
-                    // check to see if there's sufficient quantity for order
-                    if(tempProduct.stock_quantity < answers.quantity) {
+                    if(!parseInt(answers.quantity)) {
 
+                        process.stdout.write('\x1B[2J\x1B[0f');
+                        console.log("====================");
+                        console.log("Error: Invalid Input");
+                        console.log("====================");
+                        shopBamazon();
+                    }
+
+                    // check to see if there's sufficient quantity for order
+                    else if(tempProduct.stock_quantity < answers.quantity) {
+
+                        process.stdout.write('\x1B[2J\x1B[0f');
+                        console.log("/======================");
                         console.log("Insufficient quantity!");
+                        console.log("======================");
                         shopBamazon();
                     }
                 
@@ -166,6 +180,7 @@ function continuePrompt() {
     
         if(answers.again.toLowerCase() === "yes") {
 
+            process.stdout.write('\x1B[2J\x1B[0f');
             shopBamazon();
         }
 

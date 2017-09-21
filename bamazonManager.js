@@ -9,8 +9,9 @@ for(i = 0; i < 100; i++) {
     lineBreak += "-";
 }
 
+process.stdout.write('\x1B[2J\x1B[0f');
 console.log("======================================");
-console.log("Welcome to the Bamazon Management Tool\n");
+console.log("Welcome to the Bamazon Management Tool");
 console.log("======================================");
 
 manageBamazon();
@@ -79,6 +80,7 @@ function displayProducts(response) {
     var displayDepartments = [];
     var displayPrices = [];
 
+    process.stdout.write('\x1B[2J\x1B[0f');
     console.log("\n ID | Item Name                                | Department                | Price" +
                                                     "       | Stock");
     console.log(lineBreak);
@@ -154,6 +156,7 @@ function addToInventory() {
             // if tempProduct was not assigned, invalid input
             if(!tempProduct) {
 
+                process.stdout.write('\x1B[2J\x1B[0f');
                 console.log(lineBreak);
                 console.log("Invalid input.  Try Again.");
                 console.log(lineBreak);
@@ -171,6 +174,7 @@ function addToInventory() {
 
                     if(!parseInt(answer2.updateQuantity)) {
 
+                        process.stdout.write('\x1B[2J\x1B[0f');
                         console.log(lineBreak);
                         console.log("Invalid input.  Try Again.");
                         console.log(lineBreak);
