@@ -1,5 +1,14 @@
 const inquirer = require('inquirer');
-const connection = require('./Connection');
+const mysql = require('mysql');
+
+console.log('here?');
+
+const connection = mysql.createConnection({
+  host: '127.0.0.1',
+  user: 'root',
+  password: 'dthera22sql',
+  database: 'dthera_test',
+});
 
 let queryString = '';
 let lineBreak = '';
