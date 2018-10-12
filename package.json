@@ -17,6 +17,12 @@
   },
   "homepage": "https://github.com/mstange22/bamazon#readme",
   "dependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.7.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.2",
+    "eslint-plugin-react": "^7.11.1",
     "inquirer": "^3.3.0",
     "mysql": "^2.14.1"
   }
